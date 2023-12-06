@@ -2,7 +2,9 @@
 import copy
 import pathlib
 import re
-import json  
+import json
+import pandas as pd
+# import xlsxwriter
 
 sql_scripts = []
 
@@ -56,11 +58,28 @@ def deploy_rollback_backup(full_path):
             dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
         sub_path = sub_path_file(sql_script_file, full_path).upper().split("/")
         if "ROLLBACK" in sub_path:
-            dict[module_name(sql_script_file)]["Rollback"].append(sub_path_file(sql_script_file, full_path))
+            dict[module_name(sql_script_file)]["Rollback"].append("/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]))
         elif "BACKUP" in sub_path:
-            dict[module_name(sql_script_file)]["Backup"].append(sub_path_file(sql_script_file, full_path))
+            dict[module_name(sql_script_file)]["Backup"].append("/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]))
         else:
-            dict[module_name(sql_script_file)]["Deploy"].append(sub_path_file(sql_script_file, full_path))
+            dict[module_name(sql_script_file)]["Deploy"].append("/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]))
+    return dict
+
+def deploy_rollback_backup_csv(full_path):
+    modules = []
+    dict = {}
+    empty_dict = {"Rollback":"", "Backup":"", "Deploy":""}
+    for sql_script_file in sql_scripts:
+        if module_name(sql_script_file) not in modules:
+            modules.append(module_name(sql_script_file))
+            dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
+        sub_path = sub_path_file(sql_script_file, full_path).upper().split("/")
+        if "ROLLBACK" in sub_path:
+            dict[module_name(sql_script_file)]["Rollback"]="\n".join(["/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]),dict[module_name(sql_script_file)]["Rollback"]])
+        elif "BACKUP" in sub_path:
+            dict[module_name(sql_script_file)]["Backup"]="\n".join(["/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]),dict[module_name(sql_script_file)]["Backup"]])
+        else:
+            dict[module_name(sql_script_file)]["Deploy"]="\n".join(["/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]),dict[module_name(sql_script_file)]["Deploy"]])
     return dict
 
 def json_format(dict):
@@ -71,14 +90,14 @@ def get_file_by_index(index, dict):
     i_module = int(i[0])
     i_rbd = int(i[1])
     i_file = int(i[2])
-    return list(dict[list(dict)[i_module]][list(dict[list(dict)[i_module]])[i_rbd]])[i_file].split("---")[1]
+    return list(dict[list(dict)[i_module]][list(dict[list(dict)[i_module]])[i_rbd]])[i_file]
 
 def set_file_index(dict):
     index_module = ""
     index_rbd = ""
     index_file = ""
     for key, value in dict.items():
-        index_module = str(list(dict).index(key))
+        index_module = key.split(".")[0]
         for v_key, v_value in value.items():
             index_rbd = str(list(value).index(v_key))
             if v_value:
@@ -89,3 +108,8 @@ def set_file_index(dict):
             index_rbd = ""
         index_module = ""
     return dict
+def dict_to_csv(dict):
+    df = pd.DataFrame.from_dict(dict)
+    writer = pd.ExcelWriter('Module.xlsx', engine='xlsxwriter')
+    df.style.set_properties(**{'vertical-align': 'top'}).to_excel(writer, sheet_name='Sheet1')
+    writer.close()
