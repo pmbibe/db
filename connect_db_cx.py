@@ -20,6 +20,8 @@ def run_sql_script(file_path):
             connection.commit()
         except Exception as e:
             print("Database Update Failed: {}".format(e))
+            print("Script Error: {} in Script file: {}".format(sql_script, file_path))
+            print("Rollback ...")
             connection.rollback()
     cursor.close()    
 
