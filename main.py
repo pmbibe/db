@@ -39,17 +39,19 @@ if __name__ == "__main__":
                                                                                                 is_match_1.group(1)
                                                                                                 )
         get_checklist.find_SQL(checklist_path)
-        dict_drb = get_checklist.deploy_rollback_backup(checklist_path)
+        dict_drb = get_checklist.deploy_rollback_backup_ver2(checklist_path)
         dict_drb_csv = get_checklist.deploy_rollback_backup_csv(checklist_path)
+
         if "list" in sys.argv and validate.validate_include_index(args.include_index.upper()):
             if args.out_put == "xlsx":
                 get_checklist.dict_to_csv(dict_drb_csv, args.checklist)
             else:
-                if args.include_index.upper() == "Y":
-                    index_dict = get_checklist.set_file_index(dict_drb)
-                    print(get_checklist.json_format(index_dict))
-                elif args.include_index.upper() == "N":
-                    print(get_checklist.json_format(dict_drb))
+                    if args.include_index.upper() == "Y":
+                        dict_drb_index = get_checklist.deploy_rollback_backup_index(checklist_path)
+                        index_dict = get_checklist.set_file_index(dict_drb_index)
+                        print(get_checklist.json_format(index_dict))
+                    elif args.include_index.upper() == "N":
+                        print(get_checklist.json_format(dict_drb))
         elif "detail" in sys.argv and validate.validate_index(args.index):
             file_name = get_checklist.get_file_by_index(args.index, dict_drb)
             if args.all.upper() == "Y":
