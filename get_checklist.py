@@ -34,7 +34,7 @@ def module_name(file_name):
     return pathlib.PureWindowsPath(file_name).parts[6]
 
 # Get module and scripts's module with json format
-def deploy_rollback_backup_bak(full_path):
+def deploy_rollback_backup_index(full_path):
     modules = []
     dict = {}
     empty_dict = {"Rollback":[], "Backup":[], "Deploy":[]}
@@ -124,67 +124,118 @@ def dict_to_csv(dict, file_name):
     except Exception as e:
         print(e)
 
+# Retrun xlsx format with dictionary -> json
+def dict_to_csv_ver2(json_data, file_name):
+    try:
+        df = pd.json_normalize(json_data).transpose()
+        with pd.ExcelWriter('Module-{}.xlsx'.format(file_name), engine='xlsxwriter') as writer:
+            cell_format = writer.book.add_format() # type: ignore
+            cell_format.set_font_color('red')
+            cell_format.set_text_wrap()
+            cell_format.set_align('top')
+            df.to_excel(writer)
+            worksheet = writer.sheets["Sheet1"]
+            for col in range(len(df.columns)+1):
+                worksheet.set_column(col, col, None, cell_format)
+                worksheet.autofit()
+        print("Saved to XLSX File")
+    except Exception as e:
+        print(e)
+
 # Get sub module, features Script - BPM - ....
-dict = {}
-def y():
+
+def deploy_rollback_backup_ver2(full_path):
     dict = {}
     modules = []
-    empty_dict = {"Rollback":[], "Backup":[], "Deploy":[]}
-    for sub_module_path in test_data:
-        if sub_module_path.split("/")[0] not in modules:
-            modules.append(sub_module_path.split("/")[0])
-            dict[sub_module_path.split("/")[0]] = copy.deepcopy(empty_dict)
-    def x():
-        sm_dict = {}
-        empty_dict = {}
-        features = []
-        sub_modules = []
-        module = ""
+    empty_dict = {"Rollback":{}, "Backup":{}, "Deploy":{}}
 
-        def check_type(sub_module_path):
-            type = ""
-            if "ROLLBACK" in sub_module_path.upper():
-                type = "Rollback"
-            elif "BACKUP" in sub_module_path.upper():
-                type = "Backup"
-            else:
-                type = "Deploy"
-            return type
-        new_dict = {}
-        def sub_module_feature_script(sub_module_path):
-            sub_path_elements = sub_module_path.split("/")
-            empty_dict = {"Deploy": [{"01. " : ["01. sql"]}], "Backup":[{"01. " : ["02. .sql"]}]}
-            for i in empty_dict["Deploy"]:
-                print(i)
-            # if len(sub_path_elements) == 5:
-                
-            # if len(sub_path_elements) == 6:
-            #     if sub_path_elements[-3] not in sub_modules:
-            #         sub_modules.append(sub_path_elements[-3])
-            #         sm_dict[sub_path_elements[-3]] = {}
-            #     if sub_path_elements[-2] not in features:
-            #         features.append(sub_path_elements[-2])
-            #         sm_dict[sub_path_elements[-3]][sub_path_elements[-2]] = []
-            #     sm_dict[sub_path_elements[-3]][sub_path_elements[-2]].append(sub_path_elements[-1])
-            #     empty_dict[check_type(sub_module_path)][sub_path_elements[-3]].append(sm_dict[sub_path_elements[-3]][sub_path_elements[-2]])
-            #     print("--",empty_dict)
-        for sub_module_path in test_data:
-            sub_module_feature_script(sub_module_path)
-            module = sub_module_path.split("/")[0]
-        return module, sm_dict, empty_dict
-    x()
+    def sub_module_feature_script(sub_module_path):
+        sub_path_elements = sub_module_path.split("/")     
 
-y() 
+        # Sub module without feature
+        def append_to_sm_dict_without_feature(type):
+            try:
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]].append(sub_path_elements[-1])
+            except:
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]] = []
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]].append(sub_path_elements[-1])
 
+        # Sub module with feature    
+        def append_to_sm_dict_with_feature(type):
+            try:
+                dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]].append(sub_path_elements[-1])
+            except:
+                try:
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = []
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]].append(sub_path_elements[-1])
+                except:
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]] = {}
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = []
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]].append(sub_path_elements[-1])
 
+        # Module_Name/Scripts/Deploy/Sub Module/SQL_Scripts
+        # Module_Name/Scripts/Deploy/Sub Module/Feature/SQL_Scripts
+        # 5. Currently path without Deploy/Script. Use 3. Will be optimized later
+        if "ROLLBACK" in sub_module_path.upper():
+            append_to_sm_dict_without_feature("Rollback") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Rollback")
+        elif "BACKUP" in sub_module_path.upper():
+            append_to_sm_dict_without_feature("Backup") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Backup")
+        else:
+            append_to_sm_dict_without_feature("Deploy") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Deploy")
 
-def deploy_rollback_backup(full_path):
-    modules = []
-    
-    empty_dict = {"Rollback":[], "Backup":[], "Deploy":[]}
+    # Init empty dict for Module
     for sql_script_file in sql_scripts:
         if module_name(sql_script_file) not in modules:
             modules.append(module_name(sql_script_file))
             dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
-    
+        sub_module_feature_script(sub_path_file(sql_script_file, full_path)) 
+           
+    return dict
+
+def deploy_rollback_backup_csv_ver2(full_path):
+    dict = {}
+    modules = []
+    empty_dict = {"Rollback":{}, "Backup":{}, "Deploy":{}}
+
+    def sub_module_feature_script(sub_module_path):
+        sub_path_elements = sub_module_path.split("/")     
+
+        # Sub module without feature
+        def append_to_sm_dict_without_feature(type):
+            try:
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-2]], sub_path_elements[-1]])
+            except:
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]] = ""
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-2]], sub_path_elements[-1]])
+
+        # Sub module with feature    
+        def append_to_sm_dict_with_feature(type):
+            try:
+                dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]], sub_path_elements[-1]])
+            except:
+                try:
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = ""
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]], sub_path_elements[-1]])
+                except:
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]] = {}
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = ""
+                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]], sub_path_elements[-1]])
+
+        # Module_Name/Scripts/Deploy/Sub Module/SQL_Scripts
+        # Module_Name/Scripts/Deploy/Sub Module/Feature/SQL_Scripts
+        # 5. Currently path without Deploy/Script. Use 3. Will be optimized later
+        if "ROLLBACK" in sub_module_path.upper():
+            append_to_sm_dict_without_feature("Rollback") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Rollback")
+        elif "BACKUP" in sub_module_path.upper():
+            append_to_sm_dict_without_feature("Backup") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Backup")
+        else:
+            append_to_sm_dict_without_feature("Deploy") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Deploy")
+
+    # Init empty dict for Module
+    for sql_script_file in sql_scripts:
+        if module_name(sql_script_file) not in modules:
+            modules.append(module_name(sql_script_file))
+            dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
+        sub_module_feature_script(sub_path_file(sql_script_file, full_path)) 
+           
     return dict
