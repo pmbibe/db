@@ -25,43 +25,58 @@ if __name__ == "__main__":
 
     is_match_1 = validate.validate_date_1("Checklist {}".format(args.checklist))
     if validate.validate_date(args.checklist) or is_match_1 :
+        # Windows
         if validate.validate_date(args.checklist): checklist_path = "{}/Checklists/{}/Checklist-{}/{}/{}/".format(args.path, 
                                                                                                                   args.project, 
                                                                                                                   args.checklist.split(".")[0], 
                                                                                                                   ".".join(args.checklist.split(".")[0:2]), 
                                                                                                                   ".".join(args.checklist.split("."))
                                                                                                                   )
-   
         if is_match_1: checklist_path = "{}/Checklists/{}/Checklist-{}/{}/Checklist {}/".format(args.path, 
                                                                                                 args.project, 
                                                                                                 is_match_1.group(2), 
                                                                                                 ".".join([is_match_1.group(2), is_match_1.group(4)]),
                                                                                                 is_match_1.group(1)
                                                                                                 )
+        # Linux
+        # if validate.validate_date(args.checklist): checklist_path = "{}/{}/{}/".format(args.path, 
+        #                                                                                ".".join(args.checklist.split(".")[0:2]), 
+        #                                                                                ".".join(args.checklist.split("."))
+        #                                                                                )   
+        # if is_match_1: checklist_path = "{}/{}/Checklist {}/".format(args.path, 
+        #                                                              ".".join([is_match_1.group(2), is_match_1.group(4)]),
+        #                                                              is_match_1.group(1)
+        #                                                             )
+                
         get_checklist.find_SQL(checklist_path)
-        dict_drb = get_checklist.deploy_rollback_backup_ver2(checklist_path)
-        dict_drb_csv = get_checklist.deploy_rollback_backup_csv(checklist_path)
+        dict_drb = get_checklist.deploy_rollback_backup_ver2(checklist_path, False)
+        dict_drb_csv = get_checklist.deploy_rollback_backup(checklist_path, True)
 
         if "list" in sys.argv and validate.validate_include_index(args.include_index.upper()):
             if args.out_put == "xlsx":
-                get_checklist.dict_to_csv(dict_drb_csv, args.checklist)
+                get_checklist.dict_to_csv(dict_drb_csv, args.checklist, False)
             else:
                     if args.include_index.upper() == "Y":
-                        dict_drb_index = get_checklist.deploy_rollback_backup_index(checklist_path)
+                        dict_drb_index = get_checklist.deploy_rollback_backup(checklist_path, False)
                         index_dict = get_checklist.set_file_index(dict_drb_index)
                         print(get_checklist.json_format(index_dict))
                     elif args.include_index.upper() == "N":
                         print(get_checklist.json_format(dict_drb))
         elif "detail" in sys.argv and validate.validate_index(args.index):
-            file_name = get_checklist.get_file_by_index(args.index, dict_drb)
-            if args.all.upper() == "Y":
-                get_checklist.read_checklist_script(checklist_path + file_name)
-                data = get_checklist.read_checklist_script(checklist_path + file_name)
-                print(data)
-            else:
-                statements = get_statements.get_statements(checklist_path + file_name)
-                for statement in statements:
-                    print(statement.strip())
-                    print("---------------------------------")
+            try:
+                file_name = get_checklist.get_file_by_index(args.index, get_checklist.deploy_rollback_backup(checklist_path, False))
+                if args.all.upper() == "Y":
+                    get_checklist.read_checklist_script(checklist_path + file_name)
+                    data = get_checklist.read_checklist_script(checklist_path + file_name)
+                    print(data)
+                else:
+                    statements = get_statements.get_statements(checklist_path + file_name)
+                    for statement in statements:
+                        print(statement.strip())
+                        print("---------------------------------")
+            except Exception as e:
+                print(str(e))
+        else:
+            print("Not enough params")
     else:
-        print("Check you input format. For more information, use -h or --help")
+        print("Check you input. For more information, use -h or --help")
