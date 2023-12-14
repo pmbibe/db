@@ -2,15 +2,16 @@
 import copy
 import pathlib
 import re
+# import os
 import json
 import pandas as pd
 
 sql_scripts = []
 
 # find all .sql extension in directory
-def find_SQL(full_path):
+def find_SQL(checklist_path):
     try:
-        list_dir = pathlib.Path(full_path)
+        list_dir = pathlib.Path(checklist_path)
         for dir in list_dir.iterdir():
             if dir.suffix == ".sql":
                 sql_scripts.append(dir)
@@ -19,55 +20,38 @@ def find_SQL(full_path):
     except Exception as e:
         print(str(e))
 
-
 # print all script, include SQLPlus Command
 def read_checklist_script(file_name):
     with open(file_name, encoding="utf8") as f:
         return f.read()    
 
 # get sub path 
-def sub_path_file(file_name, full_path):
-    return format(pathlib.PureWindowsPath(file_name).as_posix().replace(full_path, ""))
+def sub_path_file(file_name, checklist_path):
+    return format(pathlib.PureWindowsPath(file_name).as_posix().replace(checklist_path, "")) # Windows
+    # return pathlib.Path(file_name).as_posix().replace(checklist_path, "") # Linux
 
 # get module name
 def module_name(file_name):
-    return pathlib.PureWindowsPath(file_name).parts[6]
+    return pathlib.PureWindowsPath(file_name).parts[6] # Windows
+    # return pathlib.Path(file_name).parts[3] # Linux
 
 # Get module and scripts's module with json format
-def deploy_rollback_backup_index(full_path):
+def deploy_rollback_backup(checklist_path, is_csv):
     modules = []
     dict = {}
-    empty_dict = {"Rollback":[], "Backup":[], "Deploy":[]}
+    empty_dict = {"Rollback":"", "Backup":"", "Deploy":""} if is_csv else {"Rollback":[], "Backup":[], "Deploy":[]}
     for sql_script_file in sql_scripts:
         if module_name(sql_script_file) not in modules:
             modules.append(module_name(sql_script_file))
             dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
-        sub_path = sub_path_file(sql_script_file, full_path).upper().split("/")
+        sub_path = sub_path_file(sql_script_file, checklist_path).upper().split("/")
         if "ROLLBACK" in sub_path:
-            dict[module_name(sql_script_file)]["Rollback"].append("/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]))
+            dict[module_name(sql_script_file)]["Rollback"]="\n".join(["/".join(sub_path_file(sql_script_file, checklist_path).split("/")[1:]),dict[module_name(sql_script_file)]["Rollback"]]) if is_csv else dict[module_name(sql_script_file)]["Rollback"] + ["/".join(sub_path_file(sql_script_file, checklist_path).split("/")[1:])]
         elif "BACKUP" in sub_path:
-            dict[module_name(sql_script_file)]["Backup"].append("/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]))
+            dict[module_name(sql_script_file)]["Backup"]="\n".join(["/".join(sub_path_file(sql_script_file, checklist_path).split("/")[1:]),dict[module_name(sql_script_file)]["Backup"]]) if is_csv else dict[module_name(sql_script_file)]["Backup"] + ["/".join(sub_path_file(sql_script_file, checklist_path).split("/")[1:])]
         else:
-            dict[module_name(sql_script_file)]["Deploy"].append("/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]))
+            dict[module_name(sql_script_file)]["Deploy"]="\n".join(["/".join(sub_path_file(sql_script_file, checklist_path).split("/")[1:]),dict[module_name(sql_script_file)]["Deploy"]]) if is_csv else dict[module_name(sql_script_file)]["Deploy"] + ["/".join(sub_path_file(sql_script_file, checklist_path).split("/")[1:])]
             
-    return dict
-
-# Get module and scripts's module with excel format
-def deploy_rollback_backup_csv(full_path):
-    modules = []
-    dict = {}
-    empty_dict = {"Rollback":"", "Backup":"", "Deploy":""}
-    for sql_script_file in sql_scripts:
-        if module_name(sql_script_file) not in modules:
-            modules.append(module_name(sql_script_file))
-            dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
-        sub_path = sub_path_file(sql_script_file, full_path).upper().split("/")
-        if "ROLLBACK" in sub_path:
-            dict[module_name(sql_script_file)]["Rollback"]="\n".join(["/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]),dict[module_name(sql_script_file)]["Rollback"]])
-        elif "BACKUP" in sub_path:
-            dict[module_name(sql_script_file)]["Backup"]="\n".join(["/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]),dict[module_name(sql_script_file)]["Backup"]])
-        else:
-            dict[module_name(sql_script_file)]["Deploy"]="\n".join(["/".join(sub_path_file(sql_script_file, full_path).split("/")[1:]),dict[module_name(sql_script_file)]["Deploy"]])
     return dict
 
 # Retrun json format with dictionary
@@ -107,9 +91,9 @@ def set_file_index(dict):
     return dict
 
 # Retrun xlsx format with dictionary
-def dict_to_csv(dict, file_name):
+def dict_to_csv(dict, file_name, is_ver2):
     try:
-        df = pd.DataFrame.from_dict(dict).transpose()
+        df = pd.DataFrame.from_dict(dict).transpose() if not is_ver2 else pd.json_normalize(dict).transpose()
         with pd.ExcelWriter('Module-{}.xlsx'.format(file_name), engine='xlsxwriter') as writer:
             cell_format = writer.book.add_format() # type: ignore
             cell_format.set_font_color('red')
@@ -123,28 +107,10 @@ def dict_to_csv(dict, file_name):
         print("Saved to XLSX File")
     except Exception as e:
         print(e)
-
-# Retrun xlsx format with dictionary -> json
-def dict_to_csv_ver2(json_data, file_name):
-    try:
-        df = pd.json_normalize(json_data).transpose()
-        with pd.ExcelWriter('Module-{}.xlsx'.format(file_name), engine='xlsxwriter') as writer:
-            cell_format = writer.book.add_format() # type: ignore
-            cell_format.set_font_color('red')
-            cell_format.set_text_wrap()
-            cell_format.set_align('top')
-            df.to_excel(writer)
-            worksheet = writer.sheets["Sheet1"]
-            for col in range(len(df.columns)+1):
-                worksheet.set_column(col, col, None, cell_format)
-                worksheet.autofit()
-        print("Saved to XLSX File")
-    except Exception as e:
-        print(e)
-
+       
 # Get sub module, features Script - BPM - ....
 
-def deploy_rollback_backup_ver2(full_path):
+def deploy_rollback_backup_ver2(checklist_path, is_csv):
     dict = {}
     modules = []
     empty_dict = {"Rollback":{}, "Backup":{}, "Deploy":{}}
@@ -154,24 +120,29 @@ def deploy_rollback_backup_ver2(full_path):
 
         # Sub module without feature
         def append_to_sm_dict_without_feature(type):
+            def append():
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]] = "\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-2]], sub_path_elements[-1]]) if is_csv else dict[sub_path_elements[0]][type][sub_path_elements[-2]] + [sub_path_elements[-1]]
             try:
-                dict[sub_path_elements[0]][type][sub_path_elements[-2]].append(sub_path_elements[-1])
+                append()
             except:
-                dict[sub_path_elements[0]][type][sub_path_elements[-2]] = []
-                dict[sub_path_elements[0]][type][sub_path_elements[-2]].append(sub_path_elements[-1])
+                dict[sub_path_elements[0]][type][sub_path_elements[-2]] = "" if is_csv else []
+                append()
 
         # Sub module with feature    
         def append_to_sm_dict_with_feature(type):
+            def append():
+                dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = "\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]], sub_path_elements[-1]]) if is_csv else dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] + [sub_path_elements[-1]]
+            def append_feature():
+                dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = "" if is_csv else []
+                append()
             try:
-                dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]].append(sub_path_elements[-1])
+                append()
             except:
                 try:
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = []
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]].append(sub_path_elements[-1])
+                    append_feature()
                 except:
                     dict[sub_path_elements[0]][type][sub_path_elements[-3]] = {}
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = []
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]].append(sub_path_elements[-1])
+                    append_feature()
 
         # Module_Name/Scripts/Deploy/Sub Module/SQL_Scripts
         # Module_Name/Scripts/Deploy/Sub Module/Feature/SQL_Scripts
@@ -188,54 +159,6 @@ def deploy_rollback_backup_ver2(full_path):
         if module_name(sql_script_file) not in modules:
             modules.append(module_name(sql_script_file))
             dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
-        sub_module_feature_script(sub_path_file(sql_script_file, full_path)) 
-           
-    return dict
-
-def deploy_rollback_backup_csv_ver2(full_path):
-    dict = {}
-    modules = []
-    empty_dict = {"Rollback":{}, "Backup":{}, "Deploy":{}}
-
-    def sub_module_feature_script(sub_module_path):
-        sub_path_elements = sub_module_path.split("/")     
-
-        # Sub module without feature
-        def append_to_sm_dict_without_feature(type):
-            try:
-                dict[sub_path_elements[0]][type][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-2]], sub_path_elements[-1]])
-            except:
-                dict[sub_path_elements[0]][type][sub_path_elements[-2]] = ""
-                dict[sub_path_elements[0]][type][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-2]], sub_path_elements[-1]])
-
-        # Sub module with feature    
-        def append_to_sm_dict_with_feature(type):
-            try:
-                dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]], sub_path_elements[-1]])
-            except:
-                try:
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = ""
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]], sub_path_elements[-1]])
-                except:
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]] = {}
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]] = ""
-                    dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]]="\n".join([dict[sub_path_elements[0]][type][sub_path_elements[-3]][sub_path_elements[-2]], sub_path_elements[-1]])
-
-        # Module_Name/Scripts/Deploy/Sub Module/SQL_Scripts
-        # Module_Name/Scripts/Deploy/Sub Module/Feature/SQL_Scripts
-        # 5. Currently path without Deploy/Script. Use 3. Will be optimized later
-        if "ROLLBACK" in sub_module_path.upper():
-            append_to_sm_dict_without_feature("Rollback") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Rollback")
-        elif "BACKUP" in sub_module_path.upper():
-            append_to_sm_dict_without_feature("Backup") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Backup")
-        else:
-            append_to_sm_dict_without_feature("Deploy") if len(sub_path_elements) == 3 else append_to_sm_dict_with_feature("Deploy")
-
-    # Init empty dict for Module
-    for sql_script_file in sql_scripts:
-        if module_name(sql_script_file) not in modules:
-            modules.append(module_name(sql_script_file))
-            dict[module_name(sql_script_file)] = copy.deepcopy(empty_dict)
-        sub_module_feature_script(sub_path_file(sql_script_file, full_path)) 
+        sub_module_feature_script(sub_path_file(sql_script_file, checklist_path)) 
            
     return dict
