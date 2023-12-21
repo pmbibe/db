@@ -32,7 +32,8 @@ def sub_path_file(file_name, checklist_path):
 
 # get module name
 def module_name(file_name):
-    return pathlib.PureWindowsPath(file_name).parts[6] # Windows
+    return pathlib.PureWindowsPath(file_name).parts[7] #  Run with Docker
+    # return pathlib.PureWindowsPath(file_name).parts[6] # Windows
     # return pathlib.Path(file_name).parts[3] # Linux
 
 # Get module and scripts's module with json format
