@@ -16,6 +16,12 @@ if __name__ == "__main__":
     parser_detail=subparsers.add_parser('detail', description="Details of script, searching by Index", help="Details of script, searching by Index")
     parser_detail.add_argument('-i','--index', help='Index of script file, default: 0.0.0', default= "0.0.0")
     parser_detail.add_argument('-a','--all', help='Read all script in file, default: y. Set y|n', default= "n")
+    parser_exec=subparsers.add_parser('exec', description="Execute script", help="Execute script")
+    parser_exec.add_argument('-ctype', '--connection-type', help='Connection type', default="standalone")
+    parser_exec.add_argument('-module', '--module-name', help='Module name')
+    parser_exec.add_argument('-smodule', '--sub-module-name', help='Sub module name', default="")
+    parser_exec.add_argument('-feature', '--feature-name', help='Feature name', default="")
+    parser_report=subparsers.add_parser('report', description="Create report", help="Create report")    
     parser.add_argument('-rpath', '--path', help='Root path, default: /tmp', default="/tmp")
     parser.add_argument('-prj','--project', help='Project name, default: pmbibe_project', default = "pmbibe_project")
     parser.add_argument('-chl','--checklist', help="Golive date, default: Current date follwing format YYYY.MM.DD or YYYYMMDD", default=datetime.today().strftime('%Y.%m.%d'))
@@ -54,7 +60,7 @@ if __name__ == "__main__":
 
         if "list" in sys.argv and validate.validate_include_index(args.include_index.upper()):
             if args.out_put == "xlsx":
-                get_checklist.dict_to_csv(dict_drb_csv, args.checklist, False)
+                report.dict_to_csv(dict_drb_csv, args.checklist, False)
             else:
                     if args.include_index.upper() == "Y":
                         dict_drb_index = get_checklist.deploy_rollback_backup(checklist_path, False)
@@ -74,6 +80,13 @@ if __name__ == "__main__":
                     for statement in statements:
                         print(statement.strip())
                         print("---------------------------------")
+            except Exception as e:
+                print(str(e))
+        elif "exec" in sys.argv:
+            is_standalone = False
+            if args.connection_type == "standalone": is_standalone = True
+            try:
+                report.create_report(get_checklist.sql_scripts, args.module_name, args.sub_module_name, args.feature_name, is_standalone)
             except Exception as e:
                 print(str(e))
         else:
