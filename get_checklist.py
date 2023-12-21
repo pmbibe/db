@@ -4,7 +4,7 @@ import pathlib
 import re
 # import os
 import json
-import pandas as pd
+
 
 sql_scripts = []
 
@@ -90,24 +90,7 @@ def set_file_index(dict):
         index_module = ""
     return dict
 
-# Retrun xlsx format with dictionary
-def dict_to_csv(dict, file_name, is_ver2):
-    try:
-        df = pd.DataFrame.from_dict(dict).transpose() if not is_ver2 else pd.json_normalize(dict).transpose()
-        with pd.ExcelWriter('Module-{}.xlsx'.format(file_name), engine='xlsxwriter') as writer:
-            cell_format = writer.book.add_format() # type: ignore
-            cell_format.set_font_color('red')
-            cell_format.set_text_wrap()
-            cell_format.set_align('top')
-            df.to_excel(writer)
-            worksheet = writer.sheets["Sheet1"]
-            for col in range(len(df.columns)+1):
-                worksheet.set_column(col, col, None, cell_format)
-                worksheet.autofit()
-        print("Saved to XLSX File")
-    except Exception as e:
-        print(e)
-       
+
 # Get sub module, features Script - BPM - ....
 
 def deploy_rollback_backup_ver2(checklist_path, is_csv):
@@ -162,3 +145,4 @@ def deploy_rollback_backup_ver2(checklist_path, is_csv):
         sub_module_feature_script(sub_path_file(sql_script_file, checklist_path)) 
            
     return dict
+
