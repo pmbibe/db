@@ -1,15 +1,6 @@
-import cx_Oracle
+# import cx_Oracle
 import validate
 import get_statements
-
-successed_script_file = []
-failed_script_file = []
-username = "your_username"
-password = "your_password"
-host = "dbhost.example.com"
-port = 1521
-db = "orclpdb1"
-connection_string = connection_string_func(host, port, db)
 
 # Need DISABLED AUTOCOMMIT
 # Replace these with your own credentials
@@ -38,7 +29,9 @@ def run_sql_script(file_path, is_standalone):
             try:
                 cursor.execute(script)
             except cx_Oracle.DatabaseError as e:
-                print("Database Update Failed: {}".format(e))  
+                print("Database Update Failed: {}".format(e))
+                failed_script_file.append(file_path)  
+                break
 
     # Excute implicit COMMIT scripts with pool
     def ddl_define_modify_script_pool(scripts):
@@ -62,13 +55,16 @@ def run_sql_script(file_path, is_standalone):
         for script in scripts:
             try:
                 cursor.execute(script)
-                successed_script_file.append(script)
+                # successed_script_file.append(script)
             except cx_Oracle.DatabaseError as e:
                 print("Database Update Failed: {}".format(e))
                 print("Script Error: {} in Script file: {}".format(script, file_path))
                 print("Rollback ...")
-                failed_script_file.append(script)
                 connection.rollback()
+                if file_path not in failed_script_file: failed_script_file.append(file_path)
+                if file_path in successed_script_file: successed_script_file.remove(file_path)
+                break
+                
         connection.commit()
         # ENABLED AUTOCOMMIT
         connection.autocommit = True # type: ignore     
@@ -78,7 +74,7 @@ def run_sql_script(file_path, is_standalone):
         pool = connect_with_session_pool()    
         connection = pool.acquire()      
         normal_script(scripts, connection)
-        pool.release(connection) 
+        pool.release(connection)
         pool.close() 
     
     # Excute other scripts with standalone connection
@@ -97,7 +93,10 @@ def run_sql_script(file_path, is_standalone):
     else:
         ddl_define_modify_script_pool(ddl_define_modify_scripts) 
         ddl_define_modify_script_pool(ddl_define_modify_scripts_vpf)
-        normal_script_pool(normal_scripts)        
+        normal_script_pool(normal_scripts)   
+    if file_path not in failed_script_file:
+        successed_script_file.append(file_path)   
+    
 def connect_with_session_pool():
     
     # Create the session pool
@@ -115,3 +114,12 @@ def connect_with_standalone():
                                    password=password,
                                    dsn= connection_string)
     return connection
+
+successed_script_file = []
+failed_script_file = []
+username = "your_username"
+password = "your_password"
+host = "dbhost.example.com"
+port = 1521
+db = "orclpdb1"
+connection_string = connection_string_func(host, port, db)
