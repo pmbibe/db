@@ -2,6 +2,7 @@
 import get_statements
 import sys
 import get_checklist
+import report
 import argparse
 from datetime import datetime
 import validate
@@ -81,8 +82,11 @@ if __name__ == "__main__":
                         print(statement.strip())
                         print("---------------------------------")
             except Exception as e:
-                print(str(e))
-        elif "exec" in sys.argv:
+                if str(e) ==  "list index out of range": 
+                    print("Not found -i or --index param")
+                else:
+                    print(str(e))
+        elif "exec" in sys.argv and args.module_name:
             is_standalone = False
             if args.connection_type == "standalone": is_standalone = True
             try:
@@ -90,6 +94,9 @@ if __name__ == "__main__":
             except Exception as e:
                 print(str(e))
         else:
+            print("Not enough params")
+    else:
+        print("Check you input. For more information, use -h or --help")
             print("Not enough params")
     else:
         print("Check you input. For more information, use -h or --help")
