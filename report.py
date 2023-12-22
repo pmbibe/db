@@ -17,7 +17,7 @@ def list2string(list):
 def dict_to_csv(dict, file_name, is_ver2):
     try:
         df = pd.DataFrame.from_dict(dict).transpose() if not is_ver2 else pd.json_normalize(dict).transpose()
-        with pd.ExcelWriter('Module-{}.xlsx'.format(file_name), engine='xlsxwriter') as writer:
+        with pd.ExcelWriter('/report/Module-{}.xlsx'.format(file_name), engine='xlsxwriter') as writer:
             cell_format = writer.book.add_format() # type: ignore
             cell_format.set_font_color('red')
             cell_format.set_text_wrap()
@@ -32,7 +32,8 @@ def dict_to_csv(dict, file_name, is_ver2):
         print(e)
 
 def create_report(all_scripts, module_name, sub_module_name, feature_name, is_standalone):
-    all_scripts = [x.as_posix() for x in all_scripts]
+    # all_scripts = [x.as_posix() for x in all_scripts]
+    all_scripts = [x.as_posix() for x in all_scripts if is_in(module_name, x.as_posix()) and is_in(sub_module_name, x.as_posix()) and is_in(feature_name, x.as_posix()) ]
     try:
         for file_path in all_scripts:
             if is_in(module_name, file_path) and is_in(sub_module_name, file_path) and is_in(feature_name, file_path):
