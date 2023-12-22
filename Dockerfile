@@ -1,3 +1,4 @@
+# Use the Python 3.12 image as the base
 FROM python:3.12.0-slim-bookworm as builder
 
 ARG buildArg
@@ -12,6 +13,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip install cryptography
+
 	
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
@@ -19,7 +21,7 @@ FROM python:3.12.0-slim-bookworm
 
 WORKDIR /app
 
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
 COPY . .
 
