@@ -23,8 +23,8 @@ if __name__ == "__main__":
     parser_exec.add_argument('-smodule', '--sub-module-name', help='Sub module name', default="")
     parser_exec.add_argument('-feature', '--feature-name', help='Feature name', default="")
     parser_report=subparsers.add_parser('report', description="Create report", help="Create report")    
-    parser.add_argument('-rpath', '--path', help='Root path, default: /tmp', default="/tmp")
-    parser.add_argument('-prj','--project', help='Project name, default: pmbibe_project', default = "pmbibe_project")
+    parser.add_argument('-rpath', '--path', help='Root path, default: /app', default="/app")
+    parser.add_argument('-prj','--project', help='Project name, default: project_name', default = "project_name")
     parser.add_argument('-chl','--checklist', help="Golive date, default: Current date follwing format YYYY.MM.DD or YYYYMMDD", default=datetime.today().strftime('%Y.%m.%d'))
     
     args = parser.parse_args()
