@@ -1,4 +1,34 @@
-# Hello
+# Using Docker - Tested for MySQL - Testing for Oracle
+- Mount Checklist Folder to /app. Example: ```/app/Checklists/project_name/Checklist-2023/2023.12/2023.12.22```
+- Mount Report Folder to /report
+- Edit variable in ```connect_db_cx.py``` for Oracle or ```connect_db_mysql.py``` for MySQL
+- Edit and Replace ```import report``` and ```report.create_report(get_checklist.sql_scripts, args.module_name, args.sub_module_name, args.feature_name, is_standalone)``` for Oracle
+- Edit and Replace ```import report_mysql``` and ```report_mysql.create_report(get_checklist.sql_scripts, args.module_name, args.sub_module_name, args.feature_name)``` and ```line 64: report_mysql.dict_to_csv(dict_drb_csv, args.checklist, False)``` for MySQL
+```
+python main.py --help
+usage: main.py [-h] [-rpath PATH] [-prj PROJECT] [-chl CHECKLIST] {list,detail,exec,report} ...
+
+Checklist report for Golive - Test
+
+options:
+  -h, --help            show this help message and exit
+  -rpath PATH, --path PATH
+                        Root path, default: /app
+  -prj PROJECT, --project PROJECT
+                        Project name, default: project_name
+  -chl CHECKLIST, --checklist CHECKLIST
+                        Golive date, default: Current date follwing format YYYY.MM.DD or YYYYMMDD
+
+Subcommand:
+  Get script details, dry run, v.v....
+
+  {list,detail,exec,report}
+    list                List of script and Module
+    detail              Details of script, searching by Index
+    exec                Execute script and create report
+    report              ...
+```
+
 ## ***list***
 - Group script by Module and export to xlsx file with ***-o/--out-put*** option: ``` docker run -v D:\DS_IT_2537\app:/app -v D:\DS_IT_2537\report:/report -it tool --checklist=2023.12.08 --project=project_name --path=/app list -o xlsx ```
 - Group script by Module, Sub-module, Feature and export to json format: ``` docker run -v D:\DS_IT_2537\app:/app -v D:\DS_IT_2537\report:/report -it tool --checklist=2023.12.08 --project=project_name --path=/app list ```
