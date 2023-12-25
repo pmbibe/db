@@ -7,28 +7,33 @@ LABEL builID=$buildArg
 
 LABEL stage="builder"
 
-COPY requirements.txt .
-
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install cryptography \ 
-    && apt-get install -y libaio1 \
-    && rm -rf /var/lib/apt/lists/*
+    && pip install cryptography
 
-WORKDIR /opt/oracle
 
-COPY instantclient_21_12 /opt/oracle/instantclient_21_12
-	
+COPY requirements.txt .
+
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 FROM python:3.12.0-slim-bookworm
 
-WORKDIR /app
+
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libaio1 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
+WORKDIR /opt/oracle
+
+COPY instantclient_21_12 /opt/oracle/instantclient_21_12
+
 ENV LD_LIBRARY_PATH /opt/oracle/instantclient_21_12:$LD_LIBRARY_PATH
+
+WORKDIR /app
 
 COPY . .
 
