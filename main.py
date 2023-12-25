@@ -97,6 +97,3 @@ if __name__ == "__main__":
             print("Not enough params")
     else:
         print("Check you input. For more information, use -h or --help")
-            print("Not enough params")
-    else:
-        print("Check you input. For more information, use -h or --help")
