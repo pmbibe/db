@@ -2,6 +2,8 @@
 
 Download Oraclient ***DPI-1047***: https://download.oracle.com/otn_software/linux/instantclient/2112000/instantclient-basic-linux.x64-21.12.0.0.0dbru.zip
 
+Oracle Docker image: https://hub.docker.com/r/gvenzl/oracle-xe
+
 - Mount Checklist Folder to /app. Example: ```/app/Checklists/project_name/Checklist-2023/2023.12/2023.12.22```
 - Mount Report Folder to /report
 - Edit variable in ```connect_db_cx.py``` for Oracle or ```connect_db_mysql.py``` for MySQL
