@@ -1,11 +1,9 @@
-# import cx_Oracle
+import cx_Oracle
 import validate
 import get_statements
 
 # Need DISABLED AUTOCOMMIT
 # Replace these with your own credentials
-def connection_string_func(host, port,service_name):
-    return "{}:{}/{}".format(host, port, service_name)
 
 def run_sql_script(file_path, is_standalone): 
     ddl_define_modify_scripts = []
@@ -112,14 +110,11 @@ def connect_with_standalone():
     # Connect to the Oracle database
     connection = cx_Oracle.connect(user=username, 
                                    password=password,
-                                   dsn= connection_string)
+                                   dsn= service_name)
     return connection
 
 successed_script_file = []
 failed_script_file = []
 username = "your_username"
 password = "your_password"
-host = "dbhost.example.com"
-port = 1521
-db = "orclpdb1"
-connection_string = connection_string_func(host, port, db)
+service_name = "ORCL"
