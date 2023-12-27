@@ -4,6 +4,8 @@ import get_statements
 
 # Need DISABLED AUTOCOMMIT
 # Replace these with your own credentials
+def connection_string_func(host, port,service_name):
+    return "{}:{}/{}".format(host, port, service_name)
 
 def run_sql_script(file_path, is_standalone): 
     ddl_define_modify_scripts = []
@@ -28,6 +30,7 @@ def run_sql_script(file_path, is_standalone):
                 cursor.execute(script)
             except cx_Oracle.DatabaseError as e:
                 print("Database Update Failed: {}".format(e))
+                print("Script Error: {} in Script file: {}".format(script, file_path))
                 failed_script_file.append(file_path)  
                 break
 
@@ -41,7 +44,8 @@ def run_sql_script(file_path, is_standalone):
 
     # Excute implicit COMMIT scripts Standalone
     def ddl_define_modify_script_standalone(scripts):
-        connection = connect_with_standalone()         
+        connection = connect_with_standalone()   
+              
         ddl_define_modify_script(scripts, connection)
         connection.close()
 
@@ -82,8 +86,8 @@ def run_sql_script(file_path, is_standalone):
         connection.close()
 
     # Execute the SQL script
-    sql_scripts = get_statements.get_statements(file_path)
-    pre_run_sql_script(sql_scripts)    
+    sql_scripts = [validate.validate_eos(x.replace("\n", "")).group(1) for x in get_statements.get_statements(file_path)]
+    pre_run_sql_script(sql_scripts)
     if is_standalone:
         ddl_define_modify_script_standalone(ddl_define_modify_scripts) 
         ddl_define_modify_script_standalone(ddl_define_modify_scripts_vpf)
@@ -110,11 +114,14 @@ def connect_with_standalone():
     # Connect to the Oracle database
     connection = cx_Oracle.connect(user=username, 
                                    password=password,
-                                   dsn= service_name)
+                                   dsn= host)
     return connection
 
 successed_script_file = []
 failed_script_file = []
-username = "your_username"
-password = "your_password"
-service_name = "ORCL"
+username = "pmbibe"
+password = "Babibe2211"
+host = "xepdb1"
+port = 1521
+db = "XEPDB1"
+connection_string = connection_string_func(host, port, db)
