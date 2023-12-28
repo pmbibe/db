@@ -2,17 +2,29 @@
 # import get_checklist
 import connect_db_cx
 import pandas as pd
+import validate
 
 # Find script with modules name
 
 def is_in(a,b):
-    if a.upper() in b.upper(): return True  
+    if validate.validate_m_sm_f(a) and a.upper() in b.upper(): return True
     return False
 
 # Convert list to string
 def list2string(list):
     return '\n'.join(list)
 
+# 
+def verify_input(module_name, sub_module_name, feature_name, file_path):
+    if is_in(module_name, file_path):
+        if sub_module_name != "":
+            if not is_in(sub_module_name, file_path):
+                return False # Sub module not found
+            elif feature_name != "" and not is_in(feature_name, file_path):
+                    return False # Feature not found
+    else:
+        return False
+    return True
 # Retrun xlsx format with dictionary
 def dict_to_csv(dict, file_name, is_ver2):
     try:
@@ -33,18 +45,17 @@ def dict_to_csv(dict, file_name, is_ver2):
 
 def create_report(all_scripts, module_name, sub_module_name, feature_name, is_standalone):
     # all_scripts = [x.as_posix() for x in all_scripts]
-    all_scripts = [x.as_posix() for x in all_scripts if is_in(module_name, x.as_posix()) and is_in(sub_module_name, x.as_posix()) and is_in(feature_name, x.as_posix()) ]
+    all_scripts = [x.as_posix() for x in all_scripts if verify_input(module_name, sub_module_name, feature_name, x.as_posix()) ]
     try:
         for file_path in all_scripts:
-            if is_in(module_name, file_path) and is_in(sub_module_name, file_path) and is_in(feature_name, file_path):
+            if verify_input(module_name, sub_module_name, feature_name, file_path): 
+                print(file_path)
                 connect_db_cx.run_sql_script(file_path, is_standalone)
     except Exception as e:
         print(str(e))          
     if all_scripts != []:
         successed_scripts = connect_db_cx.successed_script_file
-        failed_scripts = connect_db_cx.failed_script_file
-        successed_scripts = []  
-        failed_scripts = []       
+        failed_scripts = connect_db_cx.failed_script_file  
         not_run_yet_scripts = [x for x in all_scripts if x not in successed_scripts and x not in failed_scripts]
         dict = {"All": list2string(all_scripts), "Successed": list2string(successed_scripts), "Failed": list2string(failed_scripts), "Not run yet": list2string(not_run_yet_scripts)}
         dict_to_csv(dict, "{}-{}-{}".format(module_name, sub_module_name, feature_name), True)
