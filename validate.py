@@ -12,7 +12,7 @@ r_ddl_dml_all = r"^(CREATE|INSERT|UPDATE|ALTER|DELETE|MERGE|DROP|RENAME)"
 r_func_procedure = r"^(CREATE OR REPLACE|ALTER|CREATE) (PROCEDURE|FUNCTION)(.*)"
 
 # End of statement with semicolon ";"
-r_eos = r".+;$"
+r_eos = r"(.*);$"
 
 # Statement begin with IF, CASE, FOR
 r_if_case_for = r"^\s*(IF|CASE|FOR)\b.*"
@@ -28,6 +28,9 @@ r_ddl_exc_vpf = r"^(CREATE|ALTER|DROP|RENAME|TRUNCATE)"
 
 # DDL that define or modify database objects include VIEW, PROCEDURE, FUNCTION
 r_ddl_inc_vpf = r"^(CREATE OR REPLACE|ALTER|CREATE) (VIEW|PROCEDURE|FUNCTION)(.*)"
+
+# Module, Sub Module, Feature format
+r_m_sm_f = r"^\d+\..*"
 
 def validate_date(date):
     return re.match(r_date, date)
@@ -50,6 +53,7 @@ def validate_func_procedure(statement):
 
 def validate_eos(statement):
     return re.match(r_eos, statement)
+    # return re.finditer(r_eos, statement, re.MULTILINE)
 
 def validate_if_case_for(statement):
     return re.match(r_if_case_for, statement)
@@ -65,3 +69,6 @@ def validate_ddl_exc_vpf(statement):
 
 def validate_ddl_inc_vpf(statement):
     return re.match(r_ddl_inc_vpf, statement)
+
+def validate_m_sm_f(statement):
+    return re.match(r_m_sm_f, statement)
