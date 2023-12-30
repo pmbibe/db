@@ -86,7 +86,7 @@ def run_sql_script(file_path, is_standalone):
         connection.close()
 
     # Execute the SQL script
-    sql_scripts = [validate.validate_eos(x.replace("\n", "")).group(1) for x in get_statements.get_statements(file_path)]
+    sql_scripts = [validate.validate_eos(x.replace("\n", "")).group(1) for x in get_statements.get_statements(file_path) if validate.validate_eos(x.replace("\n", "")) != None]
     pre_run_sql_script(sql_scripts)
     if is_standalone:
         ddl_define_modify_script_standalone(ddl_define_modify_scripts) 
@@ -120,7 +120,7 @@ def connect_with_standalone():
 successed_script_file = []
 failed_script_file = []
 username = "pmbibe"
-password = "Babibe2211"
+password = "Abc@12314455"
 host = "employees"
 port = 1521
 db = "employees"
