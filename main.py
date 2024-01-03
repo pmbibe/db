@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser_detail.add_argument('-i','--index', help='Index of script file, default: 0.0.0', default= "0.0.0")
     parser_detail.add_argument('-a','--all', help='Read all script in file, default: y. Set y|n', default= "n")
     parser_exec=subparsers.add_parser('exec', description="Execute script", help="Execute script")
+    parser_exec.add_argument('-bpm', '--bpm', help='BPM', default="0")
     parser_exec.add_argument('-ctype', '--connection-type', help='Connection type', default="standalone")
     parser_exec.add_argument('-module', '--module-name', help='Module name')
     parser_exec.add_argument('-smodule', '--sub-module-name', help='Sub module name', default="")
@@ -86,11 +87,15 @@ if __name__ == "__main__":
                     print("Not found -i or --index param")
                 else:
                     print(str(e))
-        elif "exec" in sys.argv and args.module_name:
+        elif "exec" in sys.argv and args.module_name and args.bpm:
+            enum_folder = 'enumScripts-{}-{}-{}-{}'.format(args.bpm, args.module_name, args.sub_module_name, args.feature_name)
             is_standalone = False
             if args.connection_type == "standalone": is_standalone = True
             try:
-                report.create_report(get_checklist.sql_scripts, args.module_name, args.sub_module_name, args.feature_name, is_standalone)
+                path = '.'
+                if not os.path.exists(enum_folder):
+                    os.makedirs(enum_folder)
+                report.create_report(get_checklist.sql_scripts, enum_folder, args.module_name, args.sub_module_name, args.feature_name, is_standalone)
             except Exception as e:
                 print(str(e))
         else:
