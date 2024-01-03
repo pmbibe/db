@@ -26,7 +26,7 @@ def verify_input(module_name, sub_module_name, feature_name, file_path):
         return False
     return True
 # Retrun xlsx format with dictionary
-def dict_to_csv(dict, file_name, is_ver2):
+def dict_to_csv(dict, file_name, is_ver2): 
     try:
         df = pd.DataFrame.from_dict(dict).transpose() if not is_ver2 else pd.json_normalize(dict).transpose()
         with pd.ExcelWriter('/report/{}.xlsx'.format(file_name), engine='xlsxwriter') as writer:
@@ -43,9 +43,22 @@ def dict_to_csv(dict, file_name, is_ver2):
     except Exception as e:
         print(e)
 
-def create_report(all_scripts, module_name, sub_module_name, feature_name, is_standalone):
+def write2file(file_name, scripts):
+    with open(file_name, "w") as f:
+        for script in scripts:
+            f.write(script + "\n")
+    f.close()
+def read_file(file_name):
+    with open(file_name, "r") as f:
+        lines = f.readlines()
+    f.close()
+    return lines
+
+def create_report(all_scripts, enum_folder, module_name, sub_module_name, feature_name, is_standalone):
     # all_scripts = [x.as_posix() for x in all_scripts]
     all_scripts = [x.as_posix() for x in all_scripts if verify_input(module_name, sub_module_name, feature_name, x.as_posix()) ]
+    # write2file("{}/allScriptsFile".format(enum_folder), all_scripts)
+    
     try:
         for file_path in all_scripts:
             if verify_input(module_name, sub_module_name, feature_name, file_path): 
@@ -54,8 +67,10 @@ def create_report(all_scripts, module_name, sub_module_name, feature_name, is_st
     except Exception as e:
         print(str(e))          
     if all_scripts != []:
+        # successed_scripts = read_file("{}/successedScriptFile".format(enum_folder))
         successed_scripts = connect_db_cx.successed_script_file
-        failed_scripts = connect_db_cx.failed_script_file  
+        failed_scripts = connect_db_cx.failed_script_file 
+        # failed_scripts = read_file("{}/failedScriptsFile".format(enum_folder))
         not_run_yet_scripts = [x for x in all_scripts if x not in successed_scripts and x not in failed_scripts]
         dict = {"All": list2string(all_scripts), "Successed": list2string(successed_scripts), "Failed": list2string(failed_scripts), "Not run yet": list2string(not_run_yet_scripts)}
         dict_to_csv(dict, "{}-{}-{}".format(module_name, sub_module_name, feature_name), True)
