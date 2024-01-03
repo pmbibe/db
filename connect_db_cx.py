@@ -1,7 +1,8 @@
+import os
 import cx_Oracle
 import validate
 import get_statements
-
+from dotenv import load_dotenv
 # Need DISABLED AUTOCOMMIT
 # Replace these with your own credentials
 def connection_string_func(host, port,service_name):
@@ -25,20 +26,27 @@ def run_sql_script(file_path, is_standalone):
     # Excute implicit COMMIT scripts                
     def ddl_define_modify_script(scripts, connection):
         cursor = connection.cursor()
+        i = 0
         for script in scripts:
             try:
                 cursor.execute(script)
+                if i == 1: i = 2
             except cx_Oracle.DatabaseError as e:
                 print("Database Update Failed: {}".format(e))
                 print("Script Error: {} in Script file: {}".format(script, file_path))
-                failed_script_file.append(file_path)  
-                break
-
+                if file_path not in failed_script_file: failed_script_file.append(file_path)
+                i += 1
+                pass
+        return i
     # Excute implicit COMMIT scripts with pool
     def ddl_define_modify_script_pool(scripts):
         pool = connect_with_session_pool()    
-        connection = pool.acquire()      
+        connection = pool.acquire()
         ddl_define_modify_script(scripts, connection)
+        if ddl_define_modify_script(scripts, connection) == 0: 
+            successed_script_file.append(file_path)
+            if file_path in failed_script_file:
+                failed_script_file.remove(file_path)
         pool.release(connection) 
         pool.close() 
 
@@ -86,7 +94,7 @@ def run_sql_script(file_path, is_standalone):
         connection.close()
 
     # Execute the SQL script
-    sql_scripts = [validate.validate_eos(x.replace("\n", "")).group(1) for x in get_statements.get_statements(file_path) if validate.validate_eos(x.replace("\n", "")) != None]
+    sql_scripts = [validate.validate_eos(' '.join(x.split())).group(1) for x in get_statements.get_statements(file_path) if validate.validate_eos(' '.join(x.split())) != None]
     pre_run_sql_script(sql_scripts)
     if is_standalone:
         ddl_define_modify_script_standalone(ddl_define_modify_scripts) 
@@ -117,11 +125,13 @@ def connect_with_standalone():
                                    dsn= host)
     return connection
 
+load_dotenv()
 successed_script_file = []
 failed_script_file = []
-username = "pmbibe"
-password = "Abc@12314455"
-host = "employees"
-port = 1521
-db = "employees"
+
+username = os.getenv('USER_NAME')
+password = os.getenv('PASSWORD')
+host = os.getenv('HOST')
+port = os.getenv('PORT')
+db = os.getenv('DB')
 connection_string = connection_string_func(host, port, db)
