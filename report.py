@@ -49,13 +49,24 @@ def write2file(file_name, scripts):
         for script in scripts:
             f.write(script + "\n")
     f.close()
+
+def append2file(file_name, scripts):
+    with open(file_name, "a") as f:
+        for script in scripts:
+            f.write(script + "\n")
+    f.close()
+
 def read_file(file_name):
     with open(file_name, "r") as f:
         lines = f.readlines()
     f.close()
     return lines
 
-def create_report(all_scripts, enum_folder, module_name, sub_module_name, feature_name, is_standalone):
+def create_report(all_scripts, bpm, module_name, sub_module_name, feature_name, is_standalone):
+    # path = '.'
+    enum_folder = '/enumScripts_mount/enumScripts-{}-{}-{}-{}'.format(bpm, module_name, sub_module_name, feature_name)
+    if not os.path.exists(enum_folder):
+        os.makedirs(enum_folder)
     # all_scripts = [x.as_posix() for x in all_scripts]
     # all_scripts = [x.as_posix() for x in all_scripts if verify_input(module_name, sub_module_name, feature_name, x.as_posix()) ]
     # if not os.path.exists("{}/allScriptsFile".format(enum_folder)): 
@@ -80,7 +91,10 @@ def create_report(all_scripts, enum_folder, module_name, sub_module_name, featur
         except Exception as e:
             print(str(e))
     if all_scripts != []:
-        write2file("{}/successedScriptFile".format(enum_folder), connect_db_cx.successed_script_file)
+        if not os.path.exists("{}/successedScriptFile".format(enum_folder)):
+            write2file("{}/successedScriptFile".format(enum_folder), connect_db_cx.successed_script_file)
+        else:
+            append2file("{}/successedScriptFile".format(enum_folder), connect_db_cx.successed_script_file)
         write2file("{}/failedScriptsFile".format(enum_folder), connect_db_cx.failed_script_file)
         successed_scripts = read_file("{}/successedScriptFile".format(enum_folder))
         failed_scripts = read_file("{}/failedScriptsFile".format(enum_folder))
@@ -88,6 +102,8 @@ def create_report(all_scripts, enum_folder, module_name, sub_module_name, featur
         write2file("{}/notRunYetScriptsFile".format(enum_folder), not_run_yet_scripts)
         dict = {"All": list2string(all_scripts), "Successed": list2string(successed_scripts), "Failed": list2string(failed_scripts), "Not run yet": list2string(not_run_yet_scripts)}
         dict_to_csv(dict, "{}-{}-{}".format(module_name, sub_module_name, feature_name), True)
+        if read_file("{}/failedScriptsFile".format(enum_folder)) == []:
+            print("----------This module's scrips have done----------")
     else:
         print("Not found module {} - sub-module {} - feature {}".format(module_name, sub_module_name, feature_name))
 
