@@ -17,7 +17,7 @@ def list2string(list):
 
 # 
 def verify_input(module_name, sub_module_name, feature_name, file_path):
-    if is_in(module_name, file_path):
+    if is_in(module_name, file_path) and is_in(module_name, file_path.split("/")[7]):
         if sub_module_name != "":
             if not is_in(sub_module_name, file_path):
                 return False # Sub module not found
@@ -25,6 +25,7 @@ def verify_input(module_name, sub_module_name, feature_name, file_path):
                     return False # Feature not found
     else:
         return False
+
     return True
 # Retrun xlsx format with dictionary
 def dict_to_csv(dict, file_name, is_ver2): 
@@ -63,31 +64,24 @@ def read_file(file_name):
     return lines
 
 def create_report(all_scripts, bpm, module_name, sub_module_name, feature_name, is_standalone):
-    # path = '.'
     enum_folder = '/enumScripts_mount/enumScripts-{}-{}-{}-{}'.format(bpm, module_name, sub_module_name, feature_name)
     if not os.path.exists(enum_folder):
         os.makedirs(enum_folder)
-    # all_scripts = [x.as_posix() for x in all_scripts]
-    # all_scripts = [x.as_posix() for x in all_scripts if verify_input(module_name, sub_module_name, feature_name, x.as_posix()) ]
-    # if not os.path.exists("{}/allScriptsFile".format(enum_folder)): 
     write2file("{}/allScriptsFile".format(enum_folder), [x.as_posix() for x in all_scripts if verify_input(module_name, sub_module_name, feature_name, x.as_posix()) ])
     all_scripts = read_file("{}/allScriptsFile".format(enum_folder))
     if not os.path.exists("{}/notRunYetScriptsFile".format(enum_folder)):
         try:
             for file_path in all_scripts:
-                if verify_input(module_name, sub_module_name, feature_name, file_path): 
-                    print(file_path.split('\n')[0])
-                    connect_db_cx.run_sql_script(file_path.split('\n')[0], is_standalone)
+                print(file_path.split('\n')[0])
+                connect_db_cx.run_sql_script(file_path.split('\n')[0], is_standalone)
         except Exception as e:
             print(str(e))
     else:
         not_run_yet_scripts = read_file("{}/notRunYetScriptsFile".format(enum_folder))
         try:
             for file_path in not_run_yet_scripts:
-                
-                if verify_input(module_name, sub_module_name, feature_name, file_path): 
-                    print(file_path.split('\n')[0])
-                    connect_db_cx.run_sql_script(file_path.split('\n')[0], is_standalone)
+                print(file_path.split('\n')[0])
+                connect_db_cx.run_sql_script(file_path.split('\n')[0], is_standalone)
         except Exception as e:
             print(str(e))
     if all_scripts != []:
