@@ -1,5 +1,3 @@
-# $sqlplusPath = "D:\Download\sqlplus\sqlplus"
-
 param(
     [string]$bpm="",
     [Parameter(Position=0,mandatory=$true)][string]$Module,
@@ -106,19 +104,39 @@ function VerifyInput {
     return $true
 
 }
+
+function Connect-Database {
+    param (
+        [string]$ServerName,
+        [string]$DatabaseName,
+        [int16]$Port,
+        [string]$Username,
+        [String]$Password,
+        [string]$SQLPlusPath = "D:\Download\db-main\sqlplus\sqlplus.exe",
+        [string]$SQLScriptName
+    )
+
+    & $SQLPlusPath ${Username}/${Password}@//${ServerName}:${Port}/${DatabaseName} "@${SQLScriptName}"
+}
+
 function ExcuteSQLScripts {
     param (
         $ModuleInput,
         $SubModuleInput,
         $FeatureInput
     )
+    $IsExcute = $false
     foreach ($scriptPath in $files.FullName) {
         if (VerifyInput $ModuleInput $SubModuleInput $FeatureInput $scriptPath) {
-            Write-Host $scriptPath
+            $IsExcute = $true
+            
         }
     }    
-    
+    if (-not $IsExcute) {
+        Write-Host "There is a bug in the input module, submodule, or feature that needs to be fixed before the system can function correctly."
+    }
+
 }
 
 ExcuteSQLScripts $Module $SubModule $Feature
- 
+
