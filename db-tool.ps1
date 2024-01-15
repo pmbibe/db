@@ -7,6 +7,11 @@ param(
     [string]$FileExtension ="*.sql"
 )
 
+# Specify the file paths for success and error logs
+$SuccessLogPath = 'success.log'
+$ErrorLogPath = 'error.log'
+
+# Execute SQL*Plus command and capture output
 $source = $sourceDirectory -replace "\\", "\\"
 # Get a list of all files with the SQL extension
 $files = Get-ChildItem -Path $sourceDirectory -Filter $FileExtension -Recurse
@@ -116,8 +121,42 @@ function Connect-Database {
         [string]$SQLScriptName
     )
 
+    # Build the SQL*Plus command
     & $SQLPlusPath ${Username}/${Password}@//${ServerName}:${Port}/${DatabaseName} "@${SQLScriptName}"
 }
+
+function Invoke-SqlplusScript {
+    param(
+        [string]$SqlplusCommand,
+        [string]$SuccessLogPath,
+        [string]$ErrorLogPath
+    )
+
+    # Execute SQL*Plus command and capture output
+    $sqlplusOutput = Invoke-Expression -Command $SqlplusCommand 2>&1
+
+    # Check if there are any errors in the SQL*Plus output
+    if ($sqlplusOutput -match "ERROR") {
+        # Log error messages
+        $sqlplusOutput | Out-File -FilePath $ErrorLogPath -Append -Encoding utf8
+
+        # Print error messages to console
+        Write-Host "SQL*Plus script failed. Check $ErrorLogPath for details." -ForegroundColor Red
+
+        # Exit with a non-zero code to mark the script as failed
+        exit 1
+    } else {
+        # Log success messages
+        $sqlplusOutput | Out-File -FilePath $SuccessLogPath -Append  -Encoding utf8
+
+        # Print success messages to console
+        Write-Host "SQL*Plus script executed successfully. Check $SuccessLogPath for details." -ForegroundColor Green
+
+        # Exit with a zero code to indicate success
+        exit 0
+    }
+}
+
 
 function ExcuteSQLScripts {
     param (
@@ -128,6 +167,7 @@ function ExcuteSQLScripts {
     $IsExcute = $false
     foreach ($scriptPath in $files.FullName) {
         if (VerifyInput $ModuleInput $SubModuleInput $FeatureInput $scriptPath) {
+            Invoke-SqlplusScript -SqlplusCommand $scriptPath -SuccessLogPath $SuccessLogPath -ErrorLogPath $ErrorLogPath
             $IsExcute = $true
             
         }
