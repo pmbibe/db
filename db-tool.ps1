@@ -18,17 +18,19 @@ function RunTool {
     $SuccessLogPath = 'success-$BPM.log'
     $ErrorLogPath = 'error-$BPM.log'
 
-    $source = $sourceDirectory -replace "\\", "\\"
     # Get a list of all files with the SQL extension
     $files = Get-ChildItem -Path $sourceDirectory -Filter $FileExtension -Recurse
 
+    
     $Password =  [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))
+    
     function Get-Module-Name {
         param (
             $fileName
         )
 
-        $ModuleName = $fileName -replace "$source\\"
+        $ModuleName = $fileName -replace [Regex]::Escape("$sourceDirectory")
+
         return $ModuleName.Split('\')[0]
 
     }
@@ -38,8 +40,7 @@ function RunTool {
             $fileName
         )
 
-        # $source = $sourceDirectory -replace "\\", "\\"
-        $ModuleName = $fileName -replace "$source\\"
+        $ModuleName = $fileName -replace [Regex]::Escape("$sourceDirectory")
         if ($ModuleName.Split('\').Length -gt 3){
             return $ModuleName.Split('\')[2]
         }
@@ -56,20 +57,26 @@ function RunTool {
         }
 
         foreach ($sqlScriptFile in $files.FullName) {
+
             $ModuleName = Get-Module-Name $sqlScriptFile
+
             if ($ModuleName -notIn $Modules) {
                 $Modules += $ModuleName
                 $dict[$ModuleName] = $emptyDict.Clone()
             }
-            if ($subPath -eq "ROLLBACK") {
-                $dict[$ModuleName]["Rollback"] += $sqlScriptFile -replace "$source\\$ModuleName\\"
-            } elseif ($subPath -eq "BACKUP") {
-                $dict[$ModuleName]["Backup"] += $sqlScriptFile -replace "$source\\$ModuleName\\"
+            
+            $ScriptFile = $sqlScriptFile -replace [Regex]::Escape("$sourceDirectory$ModuleName\")
+            
+            if ($sqlScriptFile.ToUpper() -match "ROLLBACK") {
+                $dict[$ModuleName]["Rollback"] += $ScriptFile 
+            } elseif ($sqlScriptFile.ToUpper() -eq "BACKUP") {
+                $dict[$ModuleName]["Backup"] += $ScriptFile 
             } else {
-                $dict[$ModuleName]["Deploy"] += $sqlScriptFile -replace "$source\\$ModuleName\\"
+                $dict[$ModuleName]["Deploy"] += $ScriptFile 
             }           
         }
 
+        
         $dict | ConvertTo-Json
 
     }
